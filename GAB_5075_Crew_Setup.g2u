@@ -1,0 +1,419 @@
+Program.Sub.ScreenSU.Start
+Gui.frmCrewSetup..Create
+Gui.frmCrewSetup..Caption("Crew Setup")
+Gui.frmCrewSetup..Size(8415,7080)
+Gui.frmCrewSetup..MinX(0)
+Gui.frmCrewSetup..MinY(0)
+Gui.frmCrewSetup..Position(0,0)
+Gui.frmCrewSetup..BackColor(-2147483633)
+Gui.frmCrewSetup..MousePointer(0)
+Gui.frmCrewSetup..Event(UnLoad,frmCrewSetup_UnLoad)
+Gui.frmCrewSetup.GsGCCrew.Create(GsGridControl)
+Gui.frmCrewSetup.GsGCCrew.Size(8190,5085)
+Gui.frmCrewSetup.GsGCCrew.Position(30,1260)
+Gui.frmCrewSetup.GsGCCrew.Anchor(15)
+Gui.frmCrewSetup.GsGCCrew.Event(CellValueChanged,GsGCCrew_CellValueChanged)
+Gui.frmCrewSetup.GsGCCrew.Event(RowCellClick,GsGCCrew_RowCellClick)
+Gui.frmCrewSetup.cmdSave.Create(Button)
+Gui.frmCrewSetup.cmdSave.Size(855,375)
+Gui.frmCrewSetup.cmdSave.Position(7365,6375)
+Gui.frmCrewSetup.cmdSave.Caption("Save")
+Gui.frmCrewSetup.cmdSave.Anchor(10)
+Gui.frmCrewSetup.cmdSave.Event(Click,cmdSave_Click)
+Gui.frmCrewSetup.lblCrew.Create(Label,"Crew",True,1935,255,0,30,75,True,0,"Arial",8,-2147483633,0)
+Gui.frmCrewSetup.cmdNewCrew.Create(Button)
+Gui.frmCrewSetup.cmdNewCrew.Size(585,375)
+Gui.frmCrewSetup.cmdNewCrew.Position(2595,255)
+Gui.frmCrewSetup.cmdNewCrew.Caption("New")
+Gui.frmCrewSetup.cmdNewCrew.Event(Click,cmdNewCrew_Click)
+Gui.frmCrewSetup.cboCrew.Create(ComboBox)
+Gui.frmCrewSetup.cboCrew.Size(2505,330)
+Gui.frmCrewSetup.cboCrew.Position(30,285)
+Gui.frmCrewSetup.cboCrew.Event(Click,cboCrew_Click)
+Gui.frmCrewSetup.lblCrewLeader.Create(Label,"Crew Leader",True,1935,255,0,0,690,True,0,"Arial",8,-2147483633,0)
+Gui.frmCrewSetup.cboCrewLeader.Create(ComboBox)
+Gui.frmCrewSetup.cboCrewLeader.Size(2505,330)
+Gui.frmCrewSetup.cboCrewLeader.Position(0,900)
+Gui.frmCrewSetup.lblWC.Create(Label,"WC",True,405,255,0,2595,690,True,0,"Arial",8,-2147483633,0)
+Gui.frmCrewSetup.cboWC.Create(ComboBox)
+Gui.frmCrewSetup.cboWC.Size(810,330)
+Gui.frmCrewSetup.cboWC.Position(2580,900)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+	V.Global.sEmplValues.Declare
+	V.Global.sWCValues.Declare
+	V.Global.iRow.Declare
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sIcon.Declare
+	V.Local.bPassed.Declare
+	
+	'Build file path for icon
+	F.Intrinsic.String.Build("{0}\ART\gss2.ico",V.Caller.GlobalDir,V.Local.sIcon)
+	'Set icon to form
+	Gui.frmCrewSetup..Icon(V.Local.sIcon)
+	
+	'Open DB Connection
+	F.ODBC.Connection!con.OpenCompanyConnection(500)
+	F.Intrinsic.Control.CallSub(CheckTable)
+	
+	'Show Form
+	Gui.frmCrewSetup..Show
+	F.Intrinsic.Control.CallSub(LoadCombobox)
+	F.Intrinsic.Control.CallSub(SetContextMenus)
+	F.Intrinsic.Control.CallSub(cmdNewCrew_Click)
+	
+	'Check if being called from Paint
+	F.Intrinsic.Variable.PassedExists("CREW",V.Local.bPassed)
+	F.Intrinsic.Control.If(V.Local.bPassed)
+		Gui.frmCrewSetup.cboCrew.Text(V.Passed.CREW)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.frmCrewSetup_UnLoad.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+
+	'Close DB Connection
+	F.ODBC.Connection!con.Close
+	'End Program
+	F.Intrinsic.Control.End
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.frmCrewSetup_UnLoad.End
+
+Program.Sub.CheckTable.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.bExists.Declare
+	
+	F.ODBC.Connection!con.TableExists("GAB_5075_PAINT_CREW",V.Local.bExists)
+	F.Intrinsic.Control.If(V.Local.bExists,=,False)
+		F.ODBC.Connection!con.Execute("CREATE TABLE GAB_5075_PAINT_CREW(PCID IDENTITY,CREW CHAR(10),EMPNO CHAR(5),WC CHAR(4),CREW_LEADER BIT);")
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.CheckTable.End
+
+Program.Sub.LoadCombobox.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	F.Intrinsic.Control.BlockEvents
+	
+	F.Data.DataTable.CreateFromSQL("dtCrewsCbo","con","Select '' As Crew Union Select Distinct RTrim(Crew) As Crew From GAB_5075_PAINT_CREW Order By Crew;",True)
+	Gui.frmCrewSetup.cboCrew.AddItems("DataTable","dtCrewsCbo","Crew","Crew")
+	
+	'Retrieve Employee Names
+	F.Data.Dictionary.CreateFromSQL("dEmplNo","con","Select RTrim(Name) As Name,RTrim(Employee) As Employee From V_Employee_Mstr;",4,True)
+	F.Data.Dictionary.CreateFromSQL("dEmplName","con","Select RTrim(Employee) As Employee,RTrim(Name) As Name From V_Employee_Mstr;",4,True)
+	Gui.frmCrewSetup.cboCrewLeader.AddItems("Dictionary","dEmplNo")
+	
+	'Retrieve WC Names
+	F.Data.Dictionary.CreateFromSQL("dWC","con","Select RTrim(Machine) As Machine,RTrim(WC_Name) As WC_Name From V_Workcenters;")
+	
+	'Retrieve Employees
+	F.ODBC.Connection!con.ExecuteAndReturn("Select RTrim(Name) As Name From V_Employee_Mstr Order By Name;",V.Global.sEmplValues)
+	F.Intrinsic.String.Replace(V.Global.sEmplValues,"#$#","*!*",V.Global.sEmplValues)
+	'Retrieve WCs
+	F.ODBC.Connection!con.ExecuteAndReturn("Select RTrim(Machine) As Machine From V_Workcenters Order By Machine;",V.Global.sWCValues)
+	F.Intrinsic.String.Replace(V.Global.sWCValues,"#$#","*!*",V.Global.sWCValues)
+	'WC Combobox
+	F.Data.DataTable.CreateFromSQL("dtWCcbo","con","Select '' As Machine Union Select RTrim(Machine) As Machine From V_Workcenters Order By Machine;",True)
+	Gui.frmCrewSetup.cboWC.AddItems("DataTable","dtWCcbo","Machine","Machine")
+	
+	'Load a blank grid
+	F.Data.DataTable.CreateFromSQL("dtCrews","con","Select * From GAB_5075_PAINT_CREW Where PCID = -1 Order By Crew;",True)
+	F.Data.DataTable.AddColumn("dtCrews","NAME",String,"")
+	F.Data.DataTable.AddColumn("dtCrews","WC_NAME",String,"")
+	
+	F.Intrinsic.Control.CallSub(LoadGVCrews)
+	
+	F.Intrinsic.Control.UnBlockEvents
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.LoadCombobox.End
+
+Program.Sub.SetContextMenus.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	Gui.frmCrewSetup..ContextMenuCreate("ctxCrew")
+	Gui.frmCrewSetup.GsGCCrew.ContextMenuAttach("ctxCrew")
+	Gui.frmCrewSetup..ContextMenuAddItem("ctxCrew","Add",0,"Add Line")
+	Gui.frmCrewSetup..ContextMenuAddItem("ctxCrew","Delete",0,"Delete Line")
+	Gui.frmCrewSetup..ContextMenuSetItemEventHandler("ctxCrew","Add","MenuClick")
+	Gui.frmCrewSetup..ContextMenuSetItemEventHandler("ctxCrew","Delete","MenuClick")
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.SetContextMenus.End
+
+Program.Sub.MenuClick.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.iRow.Declare
+	
+	F.Intrinsic.Control.SelectCase(V.Args.ItemName)
+		F.Intrinsic.Control.Case("ADD")
+			F.Intrinsic.Control.If(V.Screen.frmCrewSetup!cboCrew.Text,<>,"")
+				F.Intrinsic.Control.If(V.DataTable.dtCrews.RowCount,=,0)
+					F.Data.DataTable.AddRow("dtCrews","PCID",0,"CREW",V.Screen.frmCrewSetup!cboCrew.Text,"EMPNO","","WC","","CREW_LEADER",False)
+				F.Intrinsic.Control.Else
+					Gui.frmCrewSetup.GsGCCrew.GetSelectedRows("gvCrews",V.Local.iRow)
+					F.Data.DataTable.AddRow("dtCrews","PCID",0,"CREW",V.Screen.frmCrewSetup!cboCrew.Text,"EMPNO","","WC",V.DataTable.dtCrews(V.Local.iRow).WC!FieldVal,"CREW_LEADER",False)
+'					Gui.frmCrewSetup.GsGCCrew.SetCellProperty("gvCrews",3,V.Local.iRow.++,"Locked",True)
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.Else
+				F.Intrinsic.UI.Msgbox("Enter/Select Crew first.","No Crew Selected")
+			F.Intrinsic.Control.EndIf
+			
+		F.Intrinsic.Control.Case("DELETE")
+			F.Intrinsic.Control.If(V.DataTable.dtCrews.RowCount,<>,0)
+				Gui.frmCrewSetup.GsGCCrew.GetSelectedRows("gvCrews",V.Local.iRow)
+				F.Data.DataTable.DeleteRow("dtCrews",V.Local.iRow)
+			F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndSelect
+	
+	F.Data.DataTable.FillFromDictionary("dtCrews","dWC","WC","WC_NAME")
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.MenuClick.End
+
+Program.Sub.cboCrew_Click.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sSQL.Declare
+	V.Local.sSelect.Declare
+
+	F.Intrinsic.Control.If(V.DataTable.dtCrews.Exists)
+		F.Data.DataTable.Close("dtCrews")
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.String.Build("Select * From GAB_5075_PAINT_CREW Where Crew = '{0}' Order By PCID;",V.Screen.frmCrewSetup!cboCrew.Text,V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtCrews","con",V.Local.sSQL,True)
+	F.Data.DataTable.AddColumn("dtCrews","NAME",String,"")
+	F.Data.DataTable.AddColumn("dtCrews","WC_NAME",String,"")
+	
+	F.Data.DataTable.FillFromDictionary("dtCrews","dWC","WC","WC_NAME")
+	F.Data.DataTable.FillFromDictionary("dtCrews","dEmplName","EMPNO","NAME")
+	
+	F.Data.DataTable.Select("dtCrews","CREW_LEADER = True",V.Local.sSelect)
+	F.Intrinsic.Control.If(V.Local.sSelect,<>,"***NORETURN***")
+		Gui.frmCrewSetup.cboCrewLeader.Text(V.DataTable.dtCrews(V.Local.sSelect.Long).NAME!FieldVal)
+		Gui.frmCrewSetup.cboWC.Text(V.DataTable.dtCrews(V.Local.sSelect.Long).WC!FieldVal)
+		V.Global.iRow.Set(V.Local.sSelect.Long)
+	F.Intrinsic.Control.Else
+		F.Data.DataTable.AddRow("dtCrews","PCID",0,"CREW",V.Screen.frmCrewSetup!cboCrew.Value,"EMPNO","","NAME",V.Screen.frmCrewSetup!cboCrewLeader.Value,"WC",V.Screen.frmCrewSetup!cboWC.Value,"WC_NAME","","CREW_LEADER",True)
+		V.Global.iRow.Set(V.DataTable.dtCrews.RowCount--)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.CallSub(LoadGVCrews)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.cboCrew_Click.End
+
+Program.Sub.LoadGVCrews.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+
+	F.Data.DataView.Create("dtCrews","dvCrews",22,"CREW_LEADER = False","")
+	Gui.frmCrewSetup.GsGCCrew.AddGridviewFromDataview("gvCrews","dtCrews","dvCrews")
+	Gui.frmCrewSetup.GsGCCrew.SuspendLayout()
+	Gui.frmCrewSetup.GsGCCrew.SetGridViewProperty("gvCrews","MultiSelect",True)
+	Gui.frmCrewSetup.GsGCCrew.SetGridViewProperty("gvCrews","AllowSort",True)
+	Gui.frmCrewSetup.GsGCCrew.SetGridViewProperty("gvCrews","AllowFilter",True)
+	Gui.frmCrewSetup.GsGCCrew.SetGridViewProperty("gvCrews","OptionsDetailShowDetailTabs",False)
+	Gui.frmCrewSetup.GsGCCrew.SetGridViewProperty("gvCrews","OptionsViewShowGroupPanel",True)
+	
+	Gui.frmCrewSetup.GsGCCrew.ColumnEdit("gvCrews","NAME","Combobox",V.Global.sEmplValues)
+	Gui.frmCrewSetup.GsGCCrew.ColumnEdit("gvCrews","WC","Combobox",V.Global.sWCValues)
+	
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","PCID","Visible",False)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","EMPNO","Visible",False)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW","Visible",False)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW_LEADER","Visible",False)
+	
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","NAME","VisibleIndex","0")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC","VisibleIndex","1")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC_NAME","VisibleIndex","2")
+	
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","PCID","Caption","PCID")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW","Caption","Crew")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","EMPNO","Caption","Emp No")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","NAME","Caption","Name")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC","Caption","WC")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC_NAME","Caption","WC Desc")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW_LEADER","Caption","Crew Leader")
+	
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","PCID","MinWidth","55")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW","MinWidth","85")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","EMPNO","MinWidth","65")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","NAME","MinWidth","115")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC","MinWidth","75")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC_NAME","MinWidth","115")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW_LEADER","MinWidth","75")
+
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","PCID","AllowEdit",False)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW","AllowEdit",False)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","EMPNO","AllowEdit",False)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","NAME","AllowEdit",True)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC","AllowEdit",True)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC_NAME","AllowEdit",False)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW_LEADER","AllowEdit",False)
+	
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","NAME","ReadOnly",False)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC","ReadOnly",False)
+	
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","PCID","HeaderFontBold",True)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW","HeaderFontBold",True)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","EMPNO","HeaderFontBold",True)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","NAME","HeaderFontBold",True)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC","HeaderFontBold",True)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC_NAME","HeaderFontBold",True)
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW_LEADER","HeaderFontBold",True)
+	
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","PCID","HeaderHAlignment","Center")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW","HeaderHAlignment","Center")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","EMPNO","HeaderHAlignment","Center")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","NAME","HeaderHAlignment","Center")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC","HeaderHAlignment","Center")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC_NAME","HeaderHAlignment","Center")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW_LEADER","HeaderHAlignment","Center")
+
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","PCID","CellHAlignment","Center")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW","CellHAlignment","Center")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","EMPNO","CellHAlignment","Center")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","NAME","CellHAlignment","Center")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC","CellHAlignment","Center")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","WC_NAME","CellHAlignment","Center")
+	Gui.frmCrewSetup.GsGCCrew.SetColumnProperty("gvCrews","CREW_LEADER","CellHAlignment","Center")
+	
+	Gui.frmCrewSetup.GsGCCrew.ResumeLayout()
+	Gui.frmCrewSetup.GsGCCrew.MainView("gvCrews")
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.LoadGVCrews.End
+
+Program.Sub.cmdNewCrew_Click.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+
+	Gui.frmCrewSetup.cboCrew.Text("")
+	Gui.frmCrewSetup.cboCrewLeader.Text("")
+	Gui.frmCrewSetup.cboWC.Text("")
+	Gui.frmCrewSetup.GsGCCrew.ClearRows("gvCrews")
+	Gui.frmCrewSetup.cboCrew.SetFocus
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.cmdNewCrew_Click.End
+
+Program.Sub.GsGCCrew_CellValueChanged.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+
+'	F.Data.DataTable.SetValue("dtCrews",-1,"WC",V.DataTable.dtCrews(0).WC!FieldVal)
+	F.Data.DataTable.SetValue("dtCrews",-1,"WC",V.DataTable.dtCrews(v.Args.RowIndex).WC!FieldVal)
+	F.Data.DataTable.FillFromDictionary("dtCrews","dWC","WC","WC_NAME")
+	F.Data.DataTable.FillFromDictionary("dtCrews","dEmplNo","NAME","EMPNO")
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.GsGCCrew_CellValueChanged.End
+
+Program.Sub.GsGCCrew_RowCellClick.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+'	V.Local.sSelect.Declare
+
+'	F.Intrinsic.Control.SelectCase(V.Args.Column)
+'		F.Intrinsic.Control.Case("CREW_LEADER")
+'			F.Intrinsic.Control.If(V.DataTable.dtCrews(V.Args.RowIndex).CREW_LEADER!FieldVal,=,True)
+'				F.Data.DataTable.SetValue("dtCrews",V.Args.RowIndex,"CREW_LEADER",False)
+'			F.Intrinsic.Control.Else
+'				F.Data.DataTable.Select("dtCrews","CREW_LEADER = True",V.Local.sSelect)
+'				F.Intrinsic.Control.If(V.Local.sSelect,=,"***NORETURN***")
+'					F.Data.DataTable.SetValue("dtCrews",V.Args.RowIndex,"CREW_LEADER",True)
+'				F.Intrinsic.Control.EndIf
+'			F.Intrinsic.Control.EndIf
+'	F.Intrinsic.Control.EndSelect
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.GsGCCrew_RowCellClick.End
+
+Program.Sub.cmdSave_Click.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+
+	F.Intrinsic.Control.If(V.DataTable.dtCrews.RowCount,=,0)
+		F.Data.DataTable.AddRow("dtCrews","PCID",0,"CREW",V.Screen.frmCrewSetup!cboCrew.Value,"EMPNO","","NAME",V.Screen.frmCrewSetup!cboCrewLeader.Value,"WC",V.Screen.frmCrewSetup!cboWC.Value,"WC_NAME","","CREW_LEADER",True)
+		V.Global.iRow.Set(V.DataTable.dtCrews.RowCount--)
+	F.Intrinsic.Control.EndIf
+	
+	F.Data.DataTable.SetValue("dtCrews",V.Global.iRow,"EMPNO","","NAME",V.Screen.frmCrewSetup!cboCrewLeader.Value,"WC",V.Screen.frmCrewSetup!cboWC.Value,"WC_NAME","")
+	F.Data.DataTable.FillFromDictionary("dtCrews","dWC","WC","WC_NAME")
+	F.Data.DataTable.FillFromDictionary("dtCrews","dEmplNo","NAME","EMPNO")
+	F.Data.DataTable.RemoveColumn("dtCrews","NAME")
+	F.Data.DataTable.RemoveColumn("dtCrews","WC_NAME")
+	F.Data.DataTable.SaveToDB("dtCrews","con","GAB_5075_PAINT_CREW","PCID")
+	F.Intrinsic.Control.CallSub(cboCrew_Click)
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.cmdSave_Click.End
